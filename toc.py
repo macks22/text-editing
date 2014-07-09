@@ -44,11 +44,12 @@ def _toc_from_headers(header_fields, level=0):
     for item in header_fields:
         tag, text = header_fields[-1]
         if tag == level:
+            anchor_name = '-'.join([word.lower() for word in text.split()])
             indent = '    ' * tag
             number_string = '{}.'.format(num)
             extra_space = ' ' * (4 - len(number_string))
-            toc.append('{}{}{}{}'.format(
-                indent, number_string, extra_space, text))
+            toc.append('{}{}{}[{}](#{})'.format(
+                indent, number_string, extra_space, text, anchor_name))
             num += 1
             header_fields.pop()
         elif tag > level:  # nested subsection
@@ -57,6 +58,27 @@ def _toc_from_headers(header_fields, level=0):
             return toc
 
     return toc
+
+
+def add_anchors(filepath):
+    """Add anchors to all headers in a markdown file.
+
+    :param str filepath: The path of the markdown file to add anchors to.
+
+    """
+    with open(filepath, 'r') as f:
+        lines = f.readlines()
+
+    for num, line in enumerate(lines):
+        if line.startswith('#'):
+            header_words = line.split()[1:]
+            anchor_name = '-'.join([word.lower() for word in header_words])
+            lines[num] = (line.strip() +
+                '<a name="{}"></a>\n'.format(anchor_name))
+
+    os.rename(filepath, filepath + '~')
+    with open(filepath, 'w') as f:
+        f.write(''.join(lines))
 
 
 def write_toc(toc, filepath):
@@ -81,6 +103,8 @@ def write_toc(toc, filepath):
 
     with open(filepath, 'w') as fp:
         fp.write(''.join(lines) + rest)
+
+    add_anchors(filepath)
 
 
 def main():
